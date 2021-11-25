@@ -1,4 +1,7 @@
 import * as React from 'react'
+import {AppBar, Toolbar, Typography} from '@material-ui/core'
+
+import {NavBar} from './navbar'
 
 const welcome = {
     greeting: 'Hey',
@@ -35,21 +38,34 @@ function useCustomHook(key, initialState) {
 
 function App() {
     let [searchTerm, setSearchTerm] = useCustomHook('search', 'React');
-    let [items, setItems] = React.useState([]);
     let [isLoading, setLoading] = React.useState(false);
+
+    const types = {
+        INIT: 'INIT',
+        REMOVE: 'REMOVE'
+    }
+    const reducer = (state, action) => {
+        switch (action.type) {
+            case types.INIT:
+                return action.payload;
+            case types.REMOVE:
+                return state.filter(item => item.id !== action.id);
+        }
+    }
+    let [stories, dispatchStories] = React.useReducer(reducer, []);
 
     const getData = () => new Promise((resolve, reject) => {
         setTimeout(() => resolve(list), 1000);
     });
 
     React.useEffect(() => {
-        setLoading(false);
+        setLoading(true);
 
         getData().then(result => {
-            setItems(result);
-            setLoading(true);
+            dispatchStories({type: types.INIT, payload: list})
+            setLoading(false);
         });
-    });
+    }, []);
 
     const onSearchItem = (event) => {
         setSearchTerm(event.target.value);
@@ -57,19 +73,25 @@ function App() {
 
     const onRemoveItem = (item_id) => {
         console.log(item_id);
-        let new_list = items.filter(item => item.id !== item_id);
-        setItems(new_list);
+        dispatchStories({type: types.REMOVE, id: item_id});
     }
 
-    const searched_list = items.filter(item => (
+    const searched_list = stories.filter(item => (
         item.title.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())));
 
     return (
         <div>
-        <h1> {welcome.greeting} {welcome.title} </h1>
+            <AppBar color="primary" position="static">
+                <Toolbar>
+                    <Typography variant="title" color="inherit">
+                       {welcome.greeting} {welcome.title}
+                    </Typography>
+                </Toolbar>
+                <NavBar />
+            </AppBar>
         <Search search={searchTerm}  onSearch={onSearchItem}/>
         <hr/>
-        <List list={searched_list} onRemoveItem={onRemoveItem}/>
+        {isLoading ? <p>...Is loading</p> : <List list={searched_list} onRemoveItem={onRemoveItem}/>}
         </div>
 
     );
